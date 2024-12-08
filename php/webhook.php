@@ -1,0 +1,1 @@
+<?php return "paste-your-webhook-here";
