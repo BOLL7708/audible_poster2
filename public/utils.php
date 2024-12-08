@@ -1,5 +1,15 @@
 <?php
 
+function setHeaders(): void {
+    header("Access-Control-Allow-Origin: *");
+    header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+    header("Access-Control-Allow-Headers: Content-Type, Authorization");
+    header("Access-Control-Max-Age: 3600");
+    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+        exit(); // End script execution for OPTIONS requests
+    }
+}
+
 /**
  * Loads a file from disk, returns null if it does not exist.
  * @param string $filename
@@ -29,7 +39,7 @@ function loadFileOfFiles(array $filenames): string|null {
 }
 
 function getDataDir(): string {
-    $dataDir = '_data';
+    $dataDir = '../_data';
     if(!file_exists($dataDir)) mkdir($dataDir);
     return $dataDir;
 }

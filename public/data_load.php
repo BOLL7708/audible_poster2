@@ -1,5 +1,6 @@
 <?php
 include_once('utils.php');
+setHeaders();
 $data = loadDataFile('books.json');
 if(empty($data)) {
     http_response_code(400);

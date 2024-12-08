@@ -5,6 +5,7 @@
  */
 
 include_once('utils.php');
+setHeaders();
 $webhookUrl = loadFileOfFiles(['webhook.local.php', 'webhook.php']);
 $data = json_decode(file_get_contents('php://input'));
 $id = $data->id ?? null;

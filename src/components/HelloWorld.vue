@@ -1,9 +1,20 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import FileUtils from '../classes/FileUtils.mjs'
 
 defineProps<{ msg: string }>()
 
 const count = ref(0)
+
+const save = async ()=>{
+  const result = await FileUtils.saveList([{post: 'Hello', link: 'Haha'}, {post: 'Test', link: 'hohoho'}])
+  console.log(result)
+}
+const load = async ()=>{
+  const list = await FileUtils.loadList()
+  console.log(list)
+}
+
 </script>
 
 <template>
@@ -11,6 +22,8 @@ const count = ref(0)
 
   <div class="card">
     <button type="button" @click="count++">count is {{ count }}</button>
+    <button type="button" @click="save()">Save list</button>
+    <button type="button" @click="load()">Load list</button>
     <p>
       Edit
       <code>components/HelloWorld.vue</code> to test HMR
