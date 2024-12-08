@@ -1,6 +1,6 @@
 <?php
 include_once('utils.php');
-setHeaders();
+setCorsHeadersAndHandleOptions();
 $data = json_decode(file_get_contents('php://input'));
 if(empty($data)) {
     http_response_code(400);

@@ -1,6 +1,6 @@
 <?php
 include_once('utils.php');
-setHeaders();
+setCorsHeadersAndHandleOptions();
 $data = loadDataFile('books.json');
 if(empty($data)) {
     http_response_code(400);
