@@ -1,6 +1,11 @@
 <script setup lang="ts">
+import {ref} from 'vue'
 import FileUtils from '../classes/FileUtils.mjs'
-import ScrapeUtils from '../classes/ScrapeUtils.mjs'
+import PostUtils from '../classes/PostUtils.mjs'
+import ScrapeUtils, {IBookValues} from '../classes/ScrapeUtils.mjs'
+import PostPreview from './MainViewPostPreview.vue'
+
+const bookValues = ref<IBookValues>({})
 
 const save = async () => {
   const result = await FileUtils.saveList([{post: 'Hello', link: 'Haha'}, {post: 'Test', link: 'hohoho'}])
@@ -13,8 +18,14 @@ const load = async () => {
 
 const fetchPage = async () => {
   const values = await ScrapeUtils.fetchAndParse('https://www.audible.co.uk/pd/The-Mayor-of-Noobtown-Audiobook/1774240122')
-  console.log(values)
+  if (values) bookValues.value = values
 }
+
+const post = async () => {
+  await PostUtils.post({payload: {content: 'this is a test', thread_name: 'New Thread'}})
+}
+
+fetchPage()
 
 </script>
 
@@ -23,5 +34,7 @@ const fetchPage = async () => {
     <button type="button" @click="save()">Save list</button>
     <button type="button" @click="load()">Load list</button>
     <button type="button" @click="fetchPage()">Fetch page</button>
+    <post-preview :bookValues="bookValues"></post-preview>
+    <button type="button" @click="post()">Post to Discord</button>
   </div>
 </template>
