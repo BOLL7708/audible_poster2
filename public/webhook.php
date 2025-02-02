@@ -1,1 +1,1 @@
-<?php return "paste-your-webhook-here";
+<?php return "paste-your-webhook-uri-here";

@@ -7,9 +7,6 @@ defineProps<{
 </script>
 <template>
   <div v-if="bookValues.title?.length">
-    <p><strong>Title:</strong> {{ bookValues.title }}</p>
-    <p><strong>Description:</strong> {{ bookValues.description }}</p>
-    <p><strong>Link:</strong> {{ bookValues.link }}</p>
-    <p><strong>Image:</strong> {{ bookValues.imageUrl }}</p>
+    <p v-for="(value, propertyName) in bookValues"><strong>{{ propertyName }}</strong>: {{ value }}</p>
   </div>
 </template>
