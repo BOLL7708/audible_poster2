@@ -99,54 +99,47 @@ export default class PostUtils {
     private static renderBookAsEmbed(values: IBookValues): IPostEmbed {
         return {
             title: this.buildTitle(values),
-            description: values.description,
+            description: this.decodeHtmlEntities(values.description),
             url: values.link,
             thumbnail: { url: values.imageUrl },
-            fields: this.renderBookWithFields(values)
+            fields: [this.renderBookAsField(values, '\u200b', true)]
         }
     }
 
-    private static renderBookWithFields(values: IBookValues): IPostEmbedField[] {
-        return [
-            this.renderField('Author(s)', values.author ?? 'N/A', true),
-            this.renderField('Length', values.runtime ?? 'N/A', true),
-            this.renderField('Narrator(s)', values.narrator ?? 'N/A', true),
-            this.renderField('Release Date', values.releaseDate ?? 'N/A', true),
-            this.renderField('Categories', values.categories ?? 'N/A', true),
-            this.renderField('Publisher', values.publisher ?? 'N/A', true),
-            this.renderField('Abridged', values.abridged ? 'Yes' : 'No', true),
-            this.renderField('Adult Content', values.adult ? 'Yes' : 'No', true)
-        ]
-    }
     // endregion
     // region Minimized
     private static renderEmbedWithBooks(list: IBookValues[]): IPostEmbed {
+        const values = list[0] // Use first book for description as that is used for series on the site.
         return {
-            title: values.series,
-            description: values.description,
+            title: this.decodeHtmlEntities(values.series),
+            description: this.decodeHtmlEntities(values.description),
             thumbnail: { url: values.imageUrl },
             fields: this.renderBooksAsFields(values)
         }
     }
     private static renderBooksAsFields(list: IBookValues[]): IPostEmbedField[] {
         const fields: IPostEmbedField[] = []
-        for(const item of list) {
-            fields.push(this.renderField(
-                this.buildTitle(value),
-                `
-                    **Author(s)**: ${item.author ?? 'N/A'}
-                    **Narrator(s)**: ${item.narrator ?? 'N/A'}
-                    **Length**: ${item.runtime ?? 'N/A'}  
-                    **Release Date**: ${item.releaseDate ?? 'N/A'}
-                    **Categories**: ${item.categories ?? 'N/A'}
-                    **Publisher**: ${item.publisher ?? 'N/A'}
-                    **Abridged**: ${item.abridged ? 'Yes' : 'No'}
-                    **Adult Content**: ${item.adult ? 'Yes' : 'No'}
-                    **Link**: [Audible](<${item.link}>)
-                `
-            ))
+        for(const values of list) {
+            fields.push(this.renderBookAsField(values))
         }
         return fields
+    }
+    private static renderBookAsField(values: IBookValues, titleOverride: string = '', skipLink: boolean = false): IPostEmbedField {
+        const link = skipLink ? '' : `**Link**: [Audible](<${values.link}>)`
+        return this.renderField(
+            titleOverride.length ? titleOverride : this.buildTitle(values),
+            `
+                    **Author(s)**: ${values.author ?? 'N/A'}
+                    **Narrator(s)**: ${values.narrator ?? 'N/A'}
+                    **Length**: ${values.runtime ?? 'N/A'}  
+                    **Release Date**: ${values.releaseDate ?? 'N/A'}
+                    **Categories**: ${values.categories ?? 'N/A'}
+                    **Publisher**: ${values.publisher ?? 'N/A'}
+                    **Abridged**: ${values.abridged ? 'Yes' : 'No'}
+                    **Adult Content**: ${values.adult ? 'Yes' : 'No'}
+                    ${link}
+                `
+        )
     }
     // endregion
 
@@ -159,14 +152,16 @@ export default class PostUtils {
         return this.renderField(char, char)
     }
     private static buildTitle(values: IBookValues): string {
-        if(values.series) {
-            if(values.bookNumber) {
-                return `${values.series}, ${values.bookNumber} - ${values.title}`
+        const series = this.decodeHtmlEntities(values.series ?? '')
+        const title = this.decodeHtmlEntities(values.title ?? '')
+        if(series.length) {
+            if(values.bookNumber?.length) {
+                return `${series}, ${values.bookNumber} - ${title}`
             } else {
-                return `${values.series} - ${values.title}`
+                return `${series} - ${title}`
             }
         } else {
-            return `${values.title}`
+            return `${title}`
         }
     }
     // endregion
@@ -186,6 +181,12 @@ export default class PostUtils {
             console.log(result)
         }
         return ''
+    }
+
+    private static decodeHtmlEntities(text: string): string {
+        const txt = document.createElement("textarea")
+        txt.innerHTML = text
+        return txt.value
     }
 }
 
