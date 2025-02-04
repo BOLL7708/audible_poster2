@@ -80,10 +80,12 @@ export default class ScrapeUtils {
                 .split('?')[0] // Remove query params
                 .split('/') // Split on url params
                 .pop() ?? '' // Get last url param
+            newBookValues.seriesWebPath = series.url
         }
         if(metadata?.categories?.length) {
             newBookValues.categories = metadata.categories.map((category)=>{ return category.name }).join(', ')
         }
+        if(metadata?.format) newBookValues.format = metadata.format
         console.log('ProductMetadata', metadata)
         console.table(newBookValues)
         return Object.assign({}, bookValues, newBookValues)
@@ -92,7 +94,6 @@ export default class ScrapeUtils {
     static getTitleData(text: string, bookValues: IBookValues): IBookValues {
         const newBookValues: IBookValues = {}
         const match = text.match(/<adbl-title-lockup.*?>.*?<h1 slot="title">(.*?)<\/h1>.*?<h2 slot="subtitle">(.*?)<\/h2>/is)
-        console.log('TitleMatch', match)
         if(match) {
             const title = match[1] ?? ''
             const subtitleWithBookNumber = match[2] ?? ''
@@ -100,8 +101,8 @@ export default class ScrapeUtils {
             if(title) newBookValues.title = title
             if(subtitle) newBookValues.series = subtitle
             if(bookNumber) newBookValues.bookNumber = bookNumber
+            console.log('TitleData', {title, subtitle, bookNumber})
         }
-        console.log('TitleData', match)
         console.table(newBookValues)
         return Object.assign({}, bookValues, newBookValues)
     }
@@ -160,7 +161,7 @@ export default class ScrapeUtils {
             if(book.datePublished) newBookValues.releaseDate = book.datePublished
             if(book.inLanguage) newBookValues.language = book.inLanguage
             if(book.image) newBookValues.imageUrl = book.image
-            if(book.bookFormat) newBookValues.format = book.bookFormat
+            // if(book.bookFormat) newBookValues.format = book.bookFormat /* The one in ProductMeta looks nicer */
         }
         if(products.length) {
             const product = products[0]
@@ -168,6 +169,10 @@ export default class ScrapeUtils {
             if(product.image) newBookValues.imageUrl = product.image
             if(product.name) newBookValues.title = product.name
             if(product.productID) newBookValues.bookId = product.productID
+        }
+        if(breadcrumbLists.length) {
+            const breadcrumbList = breadcrumbLists[0]
+            newBookValues.website = breadcrumbList.itemListElement[0]?.item['@id'] ?? ''
         }
         console.log('SlotData', {audioBooks, products, breadcrumbLists})
         console.table(newBookValues)
@@ -185,6 +190,7 @@ export default class ScrapeUtils {
         if(match) {
             const getData = new Function(match[1]+' return digitalData;')
             const digitalData: IDigitalData = getData()
+            console.log('DigitalData', digitalData)
             const productInfo = digitalData.product[0]?.productInfo
             if(productInfo) {
                 if(productInfo.productID) newBookValues.bookId = productInfo.productID
@@ -196,7 +202,6 @@ export default class ScrapeUtils {
                 if(productInfo.publisherName) newBookValues.publisher = productInfo.publisherName
             }
         }
-        console.log('DigitalData', match)
         console.table(newBookValues)
         return Object.assign({}, bookValues, newBookValues)
     }
@@ -213,6 +218,7 @@ export interface IBookValues {
     narrator?: string
     series?: string
     seriesId?: string
+    seriesWebPath?: string
     bookNumber?: string
     bookId?: string
     runtime?: string
@@ -222,6 +228,7 @@ export interface IBookValues {
     abridged?: boolean
     categories?: string
     format?: string
+    website?: string
 }
 
 // region Product Metadata

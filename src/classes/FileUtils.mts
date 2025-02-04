@@ -1,3 +1,5 @@
+import {IBookValues} from './ScrapeUtils.mjs'
+
 export default class FileUtils {
     static async loadList(): Promise<IPost[]> {
         const root = import.meta.env.VITE_ROOT_PHP ?? ''
@@ -24,6 +26,7 @@ export default class FileUtils {
 }
 
 export interface IPost {
-    post: string
     link: string
+    postId: string
+    values: IBookValues
 }

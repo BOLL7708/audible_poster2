@@ -28,7 +28,10 @@ const post = async () => {
   const payload = await PostUtils.buildPayload(bookValues.value)
   console.log({values: bookValues.value, payload})
   if(payload) {
-    await PostUtils.post(payload)
+    const response = await PostUtils.post(payload)
+    console.log(response) // TODO: Save post to list
+  } else {
+    // TODO: Notify of error
   }
 }
 
@@ -41,6 +44,6 @@ const post = async () => {
     <button type="button" @click="load()">Load list</button>
     <button type="button" @click="fetchPage()">Fetch page</button>
     <post-preview :bookValues="bookValues"></post-preview>
-    <button type="button" @click="post()">Post to Discord</button>
+    <button type="button" :disabled="Object.keys(bookValues).length == 0" @click="post()">Post to Discord</button>
   </div>
 </template>
