@@ -3,8 +3,8 @@ import {IBookValues} from './ScrapeUtils.mjs'
 
 export default class PostUtils {
     static async buildPayload(values: IBookValues): Promise<IPostData | undefined> {
-        if(!values.title || !values.link || !values.bookId) {
-            console.warn(`Missing value, title: ${values.title}, link: ${values.link}, bookId: ${ values.bookId }`)
+        if (!values.title || !values.link || !values.bookId) {
+            console.warn(`Missing value, title: ${values.title}, link: ${values.link}, bookId: ${values.bookId}`)
             return undefined
         }
         /*
@@ -23,10 +23,10 @@ export default class PostUtils {
         const bookList = await FileUtils.loadList()
 
         // Check if book and/or series exists
-        const booksInSeries = bookList.filter((post)=>{
+        const booksInSeries = bookList.filter((post) => {
             return post.values?.seriesId && post.values.seriesId.length > 0 && post.values.seriesId === values.seriesId
         })
-        const bookExists = bookList.find((post)=>{
+        const bookExists = bookList.find((post) => {
             return post.values?.bookId && post.values.bookId.length > 0 && post.values.bookId === values.bookId
         })
         const seriesExists = booksInSeries.length > 0
@@ -37,7 +37,7 @@ export default class PostUtils {
             postId: '',
             values
         })
-        if(!bookExists) {
+        if (!bookExists) {
             bookList.push(newPost)
         }
 
@@ -45,23 +45,23 @@ export default class PostUtils {
         let postId = ''
         let threadName = ''
         let embeds: IPostEmbed[] = []
-        if(values.seriesId?.length) {
+        if (values.seriesId?.length) {
             // Series
-            if(seriesExists) {
+            if (seriesExists) {
                 // Update current post
                 postId = seriesExists.post
-                const seriesValues = booksInSeries.map((post)=>{
+                const seriesValues = booksInSeries.map((post) => {
                     return post.values
                 })
                 seriesValues.unshift(values)
-                if(booksInSeries.length > 10) {
+                if (booksInSeries.length > 10) {
                     // Books as fields
                     content = bookExists.description // Because book descriptions are hidden now
                     embeds = this.renderEmbedWithBooks(seriesValues)
                 } else {
                     // Books as embeds
                     content = 'This is a series of books.'
-                    embeds = seriesValues.map((bookValues)=>{
+                    embeds = seriesValues.map((bookValues) => {
                         return this.renderBookAsEmbed(bookValues)
                     })
                 }
@@ -75,7 +75,7 @@ export default class PostUtils {
             // Standalone book
             content = 'This is a standalone book.'
             embeds = [this.renderBookAsEmbed(values)]
-            if(bookExists) {
+            if (bookExists) {
                 // Update current post
                 postId = bookExists.post
             } else {
@@ -89,8 +89,8 @@ export default class PostUtils {
                 embeds
             }
         }
-        if(postId) postData.id = postId // Edit post
-        if(threadName) postData.payload.thread_name = threadName
+        if (postId) postData.id = postId // Edit post
+        if (threadName) postData.payload.thread_name = threadName
 
         return postData
     }
@@ -101,7 +101,7 @@ export default class PostUtils {
             title: this.buildTitle(values),
             description: this.decodeHtmlEntities(values.description),
             url: values.link,
-            thumbnail: { url: values.imageUrl },
+            thumbnail: {url: values.imageUrl},
             fields: [this.renderBookAsField(values, '\u200b', true)]
         }
     }
@@ -113,17 +113,19 @@ export default class PostUtils {
         return {
             title: this.decodeHtmlEntities(values.series),
             description: this.decodeHtmlEntities(values.description),
-            thumbnail: { url: values.imageUrl },
+            thumbnail: {url: values.imageUrl},
             fields: this.renderBooksAsFields(values)
         }
     }
+
     private static renderBooksAsFields(list: IBookValues[]): IPostEmbedField[] {
         const fields: IPostEmbedField[] = []
-        for(const values of list) {
+        for (const values of list) {
             fields.push(this.renderBookAsField(values))
         }
         return fields
     }
+
     private static renderBookAsField(values: IBookValues, titleOverride: string = '', skipLink: boolean = false): IPostEmbedField {
         const link = skipLink ? '' : `**Link**: [Audible](<${values.link}>)`
         return this.renderField(
@@ -141,21 +143,24 @@ export default class PostUtils {
                 `
         )
     }
+
     // endregion
 
     // region Generic
     private static renderField(name: string, value: string, inline: boolean = false): IPostEmbedField {
-        return { name, value, inline }
+        return {name, value, inline}
     }
+
     private static renderRowBreakField(): IPostEmbedField {
         const char = '\u200b'
         return this.renderField(char, char)
     }
+
     private static buildTitle(values: IBookValues): string {
         const series = this.decodeHtmlEntities(values.series ?? '')
         const title = this.decodeHtmlEntities(values.title ?? '')
-        if(series.length) {
-            if(values.bookNumber?.length) {
+        if (series.length) {
+            if (values.bookNumber?.length) {
                 return `${series}, ${values.bookNumber} - ${title}`
             } else {
                 return `${series} - ${title}`
@@ -164,9 +169,10 @@ export default class PostUtils {
             return `${title}`
         }
     }
+
     // endregion
 
-    static async post(data: IPostData): Promise<string> {
+    static async post(data: IPostData): Promise<IPostResponse | undefined> {
         const root = import.meta.env.VITE_ROOT_PHP ?? ''
         const response = await fetch(
             `${root}post_webhook.php`,
@@ -177,14 +183,13 @@ export default class PostUtils {
             }
         )
         if (response.ok) {
-            const result = await response.json()
-            console.log(result)
+            return await response.json() as IPostResponse
         }
-        return ''
+        return undefined
     }
 
     private static decodeHtmlEntities(text: string): string {
-        const txt = document.createElement("textarea")
+        const txt = document.createElement('textarea')
         txt.innerHTML = text
         return txt.value
     }
@@ -214,6 +219,59 @@ export interface IPostEmbed {
 }
 
 export interface IPostEmbedField {
+    name: string
+    value: string
+    inline: boolean
+}
+
+export interface IPostResponse {
+    type: number
+    content: string
+    mentions: any[]
+    mention_roles: any[],
+    attachments: any[],
+    embeds: IPostResponseEmbed [],
+    timestamp: string
+    edited_timestamp: any | null
+    flags: number
+    components: any[],
+    id: string
+    channel_id: string
+    author: {
+        id: string
+        username: string
+        avatar: any | null,
+        discriminator: string
+        public_flags: number
+        flags: number
+        bot: boolean
+        global_name: any | null
+        clan: any | null
+        primary_guild: any | null
+    },
+    pinned: boolean
+    mention_everyone: boolean
+    tts: boolean
+    webhook_id: string
+    position: number
+}
+
+export interface IPostResponseEmbed {
+    type: string
+    url: string
+    title: string
+    description: string
+    fields: IPostResponseEmbedField[],
+    thumbnail: {
+        url: string
+        proxy_url: string
+        width: number
+        height: number
+        flags: number
+    }
+}
+
+export interface IPostResponseEmbedField {
     name: string
     value: string
     inline: boolean

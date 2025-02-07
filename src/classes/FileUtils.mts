@@ -26,7 +26,6 @@ export default class FileUtils {
 }
 
 export interface IPost {
-    link: string
     postId: string
     values: IBookValues
 }
