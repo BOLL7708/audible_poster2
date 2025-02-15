@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {onMounted, ref} from 'vue'
+import {onMounted, ref, toRaw} from 'vue'
 import FileUtils from '../classes/FileUtils.mjs'
 import PostUtils, {IPostResponse} from '../classes/PostUtils.mjs'
 import ScrapeUtils, {IBookValues} from '../classes/ScrapeUtils.mjs'
@@ -15,17 +15,6 @@ const isLoadingPage = ref(false)
 const isPostingBook = ref(false)
 const postResponse = ref<IPostResponse | null>(null)
 
-// TODO: This should happen automatically, so this button should be removed when that has been implemented.
-const save = async () => {
-  const result = await FileUtils.saveList([{post: 'Hello', link: 'Haha'}, {post: 'Test', link: 'hohoho'}])
-  console.log(result)
-}
-// TODO: Fill a list of received items, make it possible to load a URL to refresh the data for a book.
-const load = async () => {
-  const list = await FileUtils.loadList()
-  console.log(list)
-}
-
 onMounted(() => {
   url.value = localStorage.getItem(keyUrl) ?? ''
 })
@@ -39,11 +28,15 @@ const urlChanged = () => {
 }
 
 const fetchPage = async () => {
+  postResponse.value = null
   isLoadingPage.value = true
   if (url.value.trim().length > 0) {
     const values = await ScrapeUtils.fetchAndParse(url.value)
-    if (values) bookValues.value = values
-    else updateStatus('Unable to load page!')
+    if (values) {
+      bookValues.value = values
+      updateStatus('Page successfully loaded!')
+    }
+    else updateStatus('Unable to load page!', 2)
   }
   isLoadingPage.value = false
 }
@@ -51,25 +44,28 @@ const fetchPage = async () => {
 const post = async () => {
   isPostingBook.value = true
   const payload = await PostUtils.buildPayload(bookValues.value)
-  console.log({values: bookValues.value, payload})
   if (payload) {
+    console.log(payload)
     const response = await PostUtils.post(payload)
     if (response) {
       postResponse.value = response
-      updateStatus('Posted successfully!')
-      // TODO: Save post to list
+      const savedPost = await FileUtils.savePost(postResponse.value.id, toRaw(bookValues.value))
+      if(savedPost) updateStatus('Posted and saved successfully!')
+      else updateStatus('Posted successfully but failed saving!!', 1)
     } else {
-      updateStatus('Failed to post to Discord.')
+      updateStatus('Failed to post to Discord.', 2)
     }
   } else {
-    updateStatus('Unable to build Discord payload.')
+    updateStatus('Unable to build Discord payload.', 3)
   }
   isPostingBook.value = false
 }
 
-const updateStatus = (message: string) => {
+const updateStatus = (message: string, level: number = 0) => {
   if (htmlStatus.value) {
     htmlStatus.value.innerHTML = `Status: ${message}`
+    htmlStatus.value.classList.remove('level0', 'level1', 'level2', 'level3')
+    htmlStatus.value.classList.add(`level${level}`)
     if (message.length) htmlStatus.value.classList.remove('hidden')
     else htmlStatus.value.classList.add('hidden')
   }

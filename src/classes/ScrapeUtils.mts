@@ -40,10 +40,10 @@ export default class ScrapeUtils {
 
     static getProductMetadata(text: string, bookValues: IBookValues): IBookValues {
         const newBookValues: IBookValues = {}
-        const matches = text.matchAll(/<adbl-product-metadata.*?type="application\/json">(.*?)<\/script>/isg)
+        const matches = [...text.matchAll(/<adbl-product-metadata.*?type="application\/json">(.*?)<\/script>/isg)]
         let metadata: IProductMetadata = {}
         if(matches) {
-            matches.forEach(match => {
+            for(const match of matches) {
                 const json = match[1]
                 try {
                     const jsonData = JSON.parse(json)
@@ -53,7 +53,7 @@ export default class ScrapeUtils {
                 } catch (e) {
                     console.error(e)
                 }
-            })
+            }
         }
         if(metadata.authors?.length) newBookValues.author = metadata.authors.map((author)=>{ return author.name }).join(', ')
         if(metadata.narrators?.length) newBookValues.narrator = metadata.narrators.map((author)=>{ return author.name }).join(', ')
@@ -109,12 +109,12 @@ export default class ScrapeUtils {
 
     static getSlotData(text: string, bookValues: IBookValues): IBookValues {
         const newBookValues: IBookValues = {}
-        const matches = text.matchAll(/<script\W*?type="application\/ld\+json">(.*?)<\/script>/isg)
+        const matches = [...text.matchAll(/<script\W*?type="application\/ld\+json">(.*?)<\/script>/isg)]
         const audioBooks: ISlotDataAudioBook[] = []
         const products: ISlotDataProduct[] = []
         const breadcrumbLists: ISlotDataBreadcrumbList[] = []
         if(matches) {
-            matches.forEach(match => {
+            for(const match of matches) {
                 const json = match[1]
                 try {
                     const jsonData = JSON.parse(json)
@@ -145,11 +145,11 @@ export default class ScrapeUtils {
                 } catch (e) {
                     console.error(e)
                 }
-            })
+            }
         }
         if(audioBooks.length) {
             const book = audioBooks[0]
-            newBookValues.abridged = book.abridged === 'true'
+            newBookValues.abridged = !!book.abridged
             const durationPtMatch = book.duration.match(/PT(\d+)H(\d+)M/i)
             if(durationPtMatch) {
                 newBookValues.runtime = `${durationPtMatch[1]}h ${durationPtMatch[2]}m`

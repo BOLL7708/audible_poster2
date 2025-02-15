@@ -24,6 +24,7 @@ $context = stream_context_create([
     ]
 ]);
 
+error_reporting(0);
 $response = false;
 try {
     if(empty($id)) {

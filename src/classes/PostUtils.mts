@@ -1,4 +1,4 @@
-import FileUtils from './FileUtils.mjs'
+import FileUtils, {IPost} from './FileUtils.mjs'
 import {IBookValues} from './ScrapeUtils.mjs'
 
 export default class PostUtils {
@@ -30,13 +30,13 @@ export default class PostUtils {
             return post.values?.bookId && post.values.bookId.length > 0 && post.values.bookId === values.bookId
         })
         const seriesExists = booksInSeries.length > 0
+        console.log('buildPayload', {booksInSeries: booksInSeries.length, bookExists: !!bookExists, seriesExists})
 
         // Append book post if needed
-        const newPost = bookList.push({
-            link: values.link,
+        const newPost: IPost = {
             postId: '',
             values
-        })
+        }
         if (!bookExists) {
             bookList.push(newPost)
         }
@@ -45,19 +45,22 @@ export default class PostUtils {
         let postId = ''
         let threadName = ''
         let embeds: IPostEmbed[] = []
-        if (values.seriesId?.length) {
+        if (values.seriesId?.length && values.series?.length) {
             // Series
             if (seriesExists) {
                 // Update current post
-                postId = seriesExists.post
+                postId = booksInSeries[0].postId
                 const seriesValues = booksInSeries.map((post) => {
                     return post.values
                 })
-                seriesValues.unshift(values)
+                seriesValues.push(values)
+                seriesValues.sort((a, b) => {
+                    return a.bookNumber?.localeCompare(b.bookNumber ?? '') ?? 0
+                })
                 if (booksInSeries.length > 10) {
                     // Books as fields
-                    content = bookExists.description // Because book descriptions are hidden now
-                    embeds = this.renderEmbedWithBooks(seriesValues)
+                    content = bookExists?.values.description ?? '' // Because book descriptions are hidden now
+                    embeds = [this.renderEmbedWithBooks(seriesValues)]
                 } else {
                     // Books as embeds
                     content = 'This is a series of books.'
@@ -77,7 +80,7 @@ export default class PostUtils {
             embeds = [this.renderBookAsEmbed(values)]
             if (bookExists) {
                 // Update current post
-                postId = bookExists.post
+                postId = bookExists.postId
             } else {
                 threadName = values.title
             }
@@ -89,6 +92,7 @@ export default class PostUtils {
                 embeds
             }
         }
+        console.log('buildPayload', {postId, threadName})
         if (postId) postData.id = postId // Edit post
         if (threadName) postData.payload.thread_name = threadName
 
@@ -99,9 +103,9 @@ export default class PostUtils {
     private static renderBookAsEmbed(values: IBookValues): IPostEmbed {
         return {
             title: this.buildTitle(values),
-            description: this.decodeHtmlEntities(values.description),
+            description: this.decodeHtmlEntities(values.description ?? 'N/A'),
             url: values.link,
-            thumbnail: {url: values.imageUrl},
+            thumbnail: {url: values.imageUrl ?? ''},
             fields: [this.renderBookAsField(values, '\u200b', true)]
         }
     }
@@ -111,10 +115,10 @@ export default class PostUtils {
     private static renderEmbedWithBooks(list: IBookValues[]): IPostEmbed {
         const values = list[0] // Use first book for description as that is used for series on the site.
         return {
-            title: this.decodeHtmlEntities(values.series),
-            description: this.decodeHtmlEntities(values.description),
-            thumbnail: {url: values.imageUrl},
-            fields: this.renderBooksAsFields(values)
+            title: this.decodeHtmlEntities(values.series ?? 'N/A'),
+            description: this.decodeHtmlEntities(values.description ?? 'N/A'),
+            thumbnail: {url: values.imageUrl ?? ''},
+            fields: this.renderBooksAsFields(list)
         }
     }
 
