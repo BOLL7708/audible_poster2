@@ -155,17 +155,11 @@ export default class PostUtils {
     }
 
     private static buildTitle(values: IBookValues): string {
-        const series = this.decodeHtmlEntities(values.series ?? '')
         const title = this.decodeHtmlEntities(values.title ?? '')
-        if (series.length) {
-            if (values.bookNumber) {
-                return `${series}, ${values.bookNumber} - ${title}`
-            } else {
-                return `${series} - ${title}`
-            }
-        } else {
-            return `${title}`
+        if (values.bookNumber) {
+            return `${title} (Book ${values.bookNumber})`
         }
+        return `${title}`
     }
 
     // endregion

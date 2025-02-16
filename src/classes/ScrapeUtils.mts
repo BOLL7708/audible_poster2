@@ -100,7 +100,6 @@ export default class ScrapeUtils {
             const [subtitle, bookNumberStr] = subtitleWithBookNumber.split(', ')
             const bookNumber = parseInt(bookNumberStr.replace(/\D*/gs, ''))
             if(title) newBookValues.title = title
-            if(subtitle) newBookValues.series = subtitle
             if(bookNumber) newBookValues.bookNumber = bookNumber
             console.log('TitleData', {title, subtitle, bookNumber})
         }
