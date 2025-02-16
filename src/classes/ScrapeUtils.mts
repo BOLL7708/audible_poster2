@@ -97,7 +97,8 @@ export default class ScrapeUtils {
         if(match) {
             const title = match[1] ?? ''
             const subtitleWithBookNumber = match[2] ?? ''
-            const [subtitle, bookNumber] = subtitleWithBookNumber.split(', ')
+            const [subtitle, bookNumberStr] = subtitleWithBookNumber.split(', ')
+            const bookNumber = parseInt(bookNumberStr.replace(/\D*/gs, ''))
             if(title) newBookValues.title = title
             if(subtitle) newBookValues.series = subtitle
             if(bookNumber) newBookValues.bookNumber = bookNumber
@@ -149,7 +150,7 @@ export default class ScrapeUtils {
         }
         if(audioBooks.length) {
             const book = audioBooks[0]
-            newBookValues.abridged = !!book.abridged
+            newBookValues.abridged = book.abridged == 'true'
             const durationPtMatch = book.duration.match(/PT(\d+)H(\d+)M/i)
             if(durationPtMatch) {
                 newBookValues.runtime = `${durationPtMatch[1]}h ${durationPtMatch[2]}m`
@@ -208,6 +209,10 @@ export default class ScrapeUtils {
 }
 
 export interface IBookValues {
+    /** Is returned when retrieved from the database */
+    id?: number,
+    /** Filled in by posting to Discord. */
+    postId?: string
     link?: string
     title?: string
     language?: string
@@ -219,7 +224,7 @@ export interface IBookValues {
     series?: string
     seriesId?: string
     seriesWebPath?: string
-    bookNumber?: string
+    bookNumber?: number
     bookId?: string
     runtime?: string
     publisher?: string
@@ -287,7 +292,7 @@ export interface ISlotDataAudioBook {
     name: string
     description: string
     image: string
-    abridged: boolean
+    abridged: string
     author: ISlotDataPerson[]
     readBy: ISlotDataPerson[]
     publisher: string

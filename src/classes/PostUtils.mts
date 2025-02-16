@@ -1,4 +1,4 @@
-import FileUtils, {IPost} from './FileUtils.mjs'
+import DataUtils from './DataUtils.mjs'
 import {IBookValues} from './ScrapeUtils.mjs'
 
 export default class PostUtils {
@@ -20,25 +20,21 @@ export default class PostUtils {
          */
 
         // Load existing posts
-        const bookList = await FileUtils.loadList()
+        const bookList = await DataUtils.loadBooks(values.bookId)
 
         // Check if book and/or series exists
         const booksInSeries = bookList.filter((post) => {
-            return post.values?.seriesId && post.values.seriesId.length > 0 && post.values.seriesId === values.seriesId
+            return post?.seriesId && post.seriesId.length > 0 && post.seriesId === values.seriesId
         })
         const bookExists = bookList.find((post) => {
-            return post.values?.bookId && post.values.bookId.length > 0 && post.values.bookId === values.bookId
+            return post?.bookId && post.bookId.length > 0 && post.bookId === values.bookId
         })
         const seriesExists = booksInSeries.length > 0
         console.log('buildPayload', {booksInSeries: booksInSeries.length, bookExists: !!bookExists, seriesExists})
 
         // Append book post if needed
-        const newPost: IPost = {
-            postId: '',
-            values
-        }
         if (!bookExists) {
-            bookList.push(newPost)
+            bookList.push(values)
         }
 
         let content = ''
@@ -49,29 +45,27 @@ export default class PostUtils {
             // Series
             if (seriesExists) {
                 // Update current post
-                postId = booksInSeries[0].postId
-                const seriesValues = booksInSeries.map((post) => {
-                    return post.values
-                })
-                seriesValues.push(values)
-                seriesValues.sort((a, b) => {
-                    return a.bookNumber?.localeCompare(b.bookNumber ?? '') ?? 0
+                postId = booksInSeries[0].postId ?? ''
+                
+                booksInSeries.push(values)
+                booksInSeries.sort((a, b) => {
+                    return (a.bookNumber ?? 0) - (b.bookNumber ?? 0)
                 })
                 if (booksInSeries.length > 10) {
                     // Books as fields
-                    content = bookExists?.values.description ?? '' // Because book descriptions are hidden now
-                    embeds = [this.renderEmbedWithBooks(seriesValues)]
+                    content = bookExists?.description ?? '' // Because book descriptions are hidden now
+                    embeds = [this.renderEmbedWithBooks(booksInSeries)]
                 } else {
                     // Books as embeds
-                    content = 'This is a series of books.'
-                    embeds = seriesValues.map((bookValues) => {
+                    content = 'This is a series of books.' // TODO: Progress values
+                    embeds = booksInSeries.map((bookValues) => {
                         return this.renderBookAsEmbed(bookValues)
                     })
                 }
             } else {
                 // Create new post
                 threadName = values.series
-                content = `This is a series of books.`
+                content = `This is a series of books.` // TODO: Progress values
                 embeds = [this.renderBookAsEmbed(values)]
             }
         } else {
@@ -80,7 +74,7 @@ export default class PostUtils {
             embeds = [this.renderBookAsEmbed(values)]
             if (bookExists) {
                 // Update current post
-                postId = bookExists.postId
+                postId = bookExists.postId ?? ''
             } else {
                 threadName = values.title
             }
@@ -164,7 +158,7 @@ export default class PostUtils {
         const series = this.decodeHtmlEntities(values.series ?? '')
         const title = this.decodeHtmlEntities(values.title ?? '')
         if (series.length) {
-            if (values.bookNumber?.length) {
+            if (values.bookNumber) {
                 return `${series}, ${values.bookNumber} - ${title}`
             } else {
                 return `${series} - ${title}`

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {onMounted, ref, toRaw} from 'vue'
-import FileUtils from '../classes/FileUtils.mjs'
+import DataUtils from '../classes/DataUtils.mjs'
 import PostUtils, {IPostResponse} from '../classes/PostUtils.mjs'
 import ScrapeUtils, {IBookValues} from '../classes/ScrapeUtils.mjs'
 import PostPreview from './MainViewPostPreview.vue'
@@ -49,7 +49,8 @@ const post = async () => {
     const response = await PostUtils.post(payload)
     if (response) {
       postResponse.value = response
-      const savedPost = await FileUtils.savePost(postResponse.value.id, toRaw(bookValues.value))
+      bookValues.value.postId = postResponse.value.id
+      const savedPost = await DataUtils.saveOrUpdateBook(toRaw(bookValues.value))
       if(savedPost) updateStatus('Posted and saved successfully!')
       else updateStatus('Posted successfully but failed saving!!', 1)
     } else {
