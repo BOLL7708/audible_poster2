@@ -29,8 +29,6 @@ export default class PostUtils {
         const bookAlreadyExists = !!storedBookValues
         const seriesAlreadyContainsBooks = booksInSeries.length > 0
 
-        })
-
         let content = ''
         let postId = ''
         let threadName = ''
@@ -61,6 +59,11 @@ export default class PostUtils {
                     embeds = booksInSeries.map((bookValues) => {
                         return this.renderBookAsEmbed(bookValues)
                     })
+                    const totalSize = this.getSizeOfPost(content, embeds)
+                    if(totalSize > 6000) {
+                        content = firstBook.description ?? 'No description.' // Because book descriptions are hidden now
+                        embeds = [this.renderEmbedWithBooks(booksInSeries)]
+                    }
                 }
             } else {
                 // Create new post
@@ -126,18 +129,19 @@ export default class PostUtils {
     }
 
     private static renderBookAsField(values: IBookValues, titleOverride: string = '', skipLink: boolean = false): IPostEmbedField {
-        const link = skipLink ? '' : `**Link**: [Audible](<${values.link}>)`
+        const separator = ' → '
+        const link = skipLink ? '' : `Link${separator}[Audible](<${values.link}>)`
         return this.renderField(
             titleOverride.length ? titleOverride : this.buildTitle(values),
             `
-                    **Author(s)**: ${values.author ?? 'N/A'}
-                    **Narrator(s)**: ${values.narrator ?? 'N/A'}
-                    **Length**: ${values.runtime ?? 'N/A'}  
-                    **Release Date**: ${values.releaseDate ?? 'N/A'}
-                    **Categories**: ${values.categories ?? 'N/A'}
-                    **Publisher**: ${values.publisher ?? 'N/A'}
-                    **Abridged**: ${values.abridged ? 'Yes' : 'No'}
-                    **Adult Content**: ${values.adult ? 'Yes' : 'No'}
+                    Author(s)${separator}${values.author ?? 'N/A'}
+                    Narrator(s)${separator}${values.narrator ?? 'N/A'}
+                    Length${separator}${values.runtime ?? 'N/A'}  
+                    Release Date${separator}${values.releaseDate ?? 'N/A'}
+                    Categories${separator}${values.categories ?? 'N/A'}
+                    Publisher${separator}${values.publisher ?? 'N/A'}
+                    Abridged${separator}${values.abridged ? 'Yes' : 'No'}
+                    Adult Content${separator}${values.adult ? 'Yes' : 'No'}
                     ${link}
                 `
         )
@@ -185,6 +189,16 @@ export default class PostUtils {
         const txt = document.createElement('textarea')
         txt.innerHTML = text
         return txt.value
+    }
+
+    private static getSizeOfPost(content: string, embeds: IPostEmbed[]): number {
+        return content.length +
+            embeds.reduce((acc, embed): number=>{
+                const fieldLength = embed.fields.reduce((acc, field): number => {
+                    return acc + field.name.length + field.value.length
+                }, 0)
+                return acc + embed.title.length + embed.description.length + fieldLength
+            }, 0)
     }
 }
 
