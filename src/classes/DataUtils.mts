@@ -1,12 +1,33 @@
 import {IBookValues} from './ScrapeUtils.mjs'
 
+export enum EBookIdType {
+    Book,
+    Series,
+    Post
+}
+
 export default class DataUtils {
     /**
      * Will load books from the database.
      */
-    static async loadBooks(bookId: string = '', postId: string = ''): Promise<IBookValues[]> {
+    static async loadBooks(id: string = '', type: EBookIdType): Promise<IBookValues[]> {
         const root = import.meta.env.VITE_ROOT_PHP ?? ''
-        const url = `${root}data_load.php?bookId=${bookId}&postId=${postId}`
+        let field = ''
+        switch(type) {
+            case EBookIdType.Book:
+                field = 'bookId'
+                break
+            case EBookIdType.Series:
+                field = 'seriesId'
+                break
+            case EBookIdType.Post:
+                field = 'postId'
+                break
+        }
+        const query = id.length > 0
+            ? `?${field}=${id}`
+            : ''
+        const url = `${root}data_load.php${query}`
         const response = await fetch(url)
         if (response.ok) {
             const result = await response.json() as IBookValues[]

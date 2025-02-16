@@ -1,4 +1,4 @@
-import DataUtils from './DataUtils.mjs'
+import DataUtils, {EBookIdType} from './DataUtils.mjs'
 import {IBookValues} from './ScrapeUtils.mjs'
 
 export default class PostUtils {
@@ -19,44 +19,44 @@ export default class PostUtils {
             Else post new book thread
          */
 
-        // Load existing posts
-        const bookList = await DataUtils.loadBooks(values.bookId)
+        // Load other books from series if possible
+        const bookIsPartOfSeries = (values.seriesId?.length ?? 0) > 0
+        const booksInSeries = bookIsPartOfSeries
+            ? await DataUtils.loadBooks(values.seriesId, EBookIdType.Series)
+            : []
+        // Load book if it already exists
+        const storedBookValues = (await DataUtils.loadBooks(values.bookId, EBookIdType.Book)).pop()
+        const bookAlreadyExists = !!storedBookValues
+        const seriesAlreadyContainsBooks = booksInSeries.length > 0
 
-        // Check if book and/or series exists
-        const booksInSeries = bookList.filter((post) => {
-            return post?.seriesId && post.seriesId.length > 0 && post.seriesId === values.seriesId
         })
-        const bookExists = bookList.find((post) => {
-            return post?.bookId && post.bookId.length > 0 && post.bookId === values.bookId
-        })
-        const seriesExists = booksInSeries.length > 0
-        console.log('buildPayload', {booksInSeries: booksInSeries.length, bookExists: !!bookExists, seriesExists})
-
-        // Append book post if needed
-        if (!bookExists) {
-            bookList.push(values)
-        }
 
         let content = ''
         let postId = ''
         let threadName = ''
         let embeds: IPostEmbed[] = []
-        if (values.seriesId?.length && values.series?.length) {
+        if (bookIsPartOfSeries) {
             // Series
-            if (seriesExists) {
+            if (seriesAlreadyContainsBooks) {
                 // Update current post
                 postId = booksInSeries[0].postId ?? ''
-                
-                booksInSeries.push(values)
+
+                if (seriesAlreadyContainsBooks && !bookAlreadyExists) {
+                    // Append new book to include it in post
+                    booksInSeries.push(values)
+                }
+
                 booksInSeries.sort((a, b) => {
                     return (a.bookNumber ?? 0) - (b.bookNumber ?? 0)
                 })
+
+                const firstBook = booksInSeries[0]
                 if (booksInSeries.length > 10) {
-                    // Books as fields
-                    content = bookExists?.description ?? '' // Because book descriptions are hidden now
+                    // Books as fields, as a message can only have 10 embeds.
+                    content = firstBook.description ?? 'No description.' // Because book descriptions are hidden now
                     embeds = [this.renderEmbedWithBooks(booksInSeries)]
                 } else {
-                    // Books as embeds
+                    // Books as embeds, as a message can fit up to 10.
                     content = 'This is a series of books.' // TODO: Progress values
                     embeds = booksInSeries.map((bookValues) => {
                         return this.renderBookAsEmbed(bookValues)
@@ -64,7 +64,7 @@ export default class PostUtils {
                 }
             } else {
                 // Create new post
-                threadName = values.series
+                threadName = values.series ?? 'N/A' // TODO: Total hours read? Also update this when editing?
                 content = `This is a series of books.` // TODO: Progress values
                 embeds = [this.renderBookAsEmbed(values)]
             }
@@ -72,11 +72,12 @@ export default class PostUtils {
             // Standalone book
             content = 'This is a standalone book.'
             embeds = [this.renderBookAsEmbed(values)]
-            if (bookExists) {
+            if (bookAlreadyExists) {
                 // Update current post
-                postId = bookExists.postId ?? ''
+                postId = storedBookValues.postId ?? ''
             } else {
-                threadName = values.title
+                // New post
+                threadName = values.title ?? 'N/A'
             }
         }
 

@@ -3,13 +3,16 @@ include_once('utils.php');
 include_once('db.php');
 setCorsHeadersAndHandleOptions();
 $bookId = $_GET['bookId'] ?? '';
+$seriesId = $_GET['seriesId'] ?? '';
 $postId = $_GET['postId'] ?? '';
 
 $db = new DB_SQLite();
 if(!empty($bookId)) {
-    $data = $db->query('SELECT * FROM books WHERE bookId=?;', [$bookId]);
+    $data = $db->query('SELECT * FROM books WHERE bookId=:id;', ['id'=>$bookId]);
+} elseif(!empty($seriesId)) {
+    $data = $db->query('SELECT * FROM books WHERE seriesId=:id;', ['id'=>$seriesId]);
 } elseif(!empty($postId)) {
-    $data = $db->query('SELECT * FROM books WHERE postId=?;', [$postId]);
+    $data = $db->query('SELECT * FROM books WHERE postId=:id;', ['id'=>$postId]);
 } else {
     $data = $db->query('SELECT * FROM books;', []);
 }
