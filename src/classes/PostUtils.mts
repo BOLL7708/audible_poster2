@@ -44,7 +44,7 @@ export default class PostUtils {
                     // Append new book to include it in post
                     booksInSeries.push(values)
                 } else {
-                    // Update book in series
+                    // Update book in series or else it will use old data
                     const index = booksInSeries.findIndex((book) => book.bookId === values.bookId)
                     if (index > -1) {
                         booksInSeries[index] = values
@@ -60,11 +60,12 @@ export default class PostUtils {
                     content = this.buildSeriesDescription(booksInSeries, true)
                     embeds = [this.renderEmbedWithBooks(booksInSeries)]
                 } else {
-                    // Books as embeds, as a message can fit up to 10.
+                    // Books as embeds, as a message can fit up to 10 embeds.
                     content = this.buildSeriesDescription(booksInSeries, false)
                     embeds = booksInSeries.map((bookValues) => {
                         return this.renderBookAsEmbed(bookValues, EPostDescriptionType.Description)
                     })
+                    // If the message is too large, we will again fall back to fields.
                     const totalSize = this.getSizeOfPost(content, embeds)
                     if (totalSize > 6000) {
                         content = this.buildSeriesDescription(booksInSeries, true)
@@ -80,7 +81,7 @@ export default class PostUtils {
             // endregion
         } else {
             // region Standalone book
-            content = this.decodeHtmlEntities(values.description ?? 'No description')
+            content = ':information_source: '+this.decodeHtmlEntities(values.description ?? 'No description')
             embeds = [this.renderBookAsEmbed(values, EPostDescriptionType.Subtitle)]
             if (bookAlreadyExists) {
                 // Update current post
@@ -115,7 +116,7 @@ export default class PostUtils {
         }
         switch(descriptionType) {
             case EPostDescriptionType.Description:
-                postEmbed.description = this.decodeHtmlEntities(values.description ?? 'No description.')
+                postEmbed.description = ':information_source: '+this.decodeHtmlEntities(values.description ?? 'No description.')
                 break;
             case EPostDescriptionType.Subtitle:
                 postEmbed.description = this.decodeHtmlEntities(values.subtitle ?? '')
@@ -150,14 +151,14 @@ export default class PostUtils {
         return this.renderField(
             titleOverride.length ? titleOverride : this.buildTitle(values),
             `
-✍ Author(s)${separator}**${values.author ?? 'N/A'}**
-🗣 Narrator(s)${separator}**${values.narrator ?? 'N/A'}**
-⌛ Length${separator}**${values.runtimeHours ?? 0}h ${values.runtimeMinutes ?? 0}m**  
-📅 Release Date${separator}**${values.releaseDate ?? 'N/A'}**
-📚 Categories${separator}**${values.categories ?? 'N/A'}**
-👨‍💼 Publisher${separator}**${values.publisher ?? 'N/A'}**
-🌉 Abridged${separator}**${values.abridged ? 'Yes' : 'No'}**
-💃 Adult Content${separator}**${values.adult ? 'Yes' : 'No'}**
+:writing_hand: Author(s)${separator}**${values.author ?? 'N/A'}**
+:speaking_head: Narrator(s)${separator}**${values.narrator ?? 'N/A'}**
+:hourglass: Length${separator}**${values.runtimeHours ?? 0}h ${values.runtimeMinutes ?? 0}m**  
+:date: Release Date${separator}**${values.releaseDate ?? 'N/A'}**
+:books: Categories${separator}**${values.categories ?? 'N/A'}**
+:man_office_worker: Publisher${separator}**${values.publisher ?? 'N/A'}**
+:bridge_at_night: Abridged${separator}**${values.abridged ? 'Yes' : 'No'}**
+:dancer: Adult Content${separator}**${values.adult ? 'Yes' : 'No'}**
 ${link}
                 `
         )
@@ -219,25 +220,26 @@ ${link}
     }
 
     private static buildSeriesDescription(books: IBookValues[], includeDescription: boolean): string {
-        let description = ''
+        const components: string[] = []
+
+        const totalMinutes = books.reduce(
+            (acc, book) => {
+                return (book.runtimeHours ?? 0) * 60 + (book.runtimeMinutes ?? 0) + acc
+            },
+            0
+        )
+        const timeStr = TextUtils.timeStrFromMinutes(totalMinutes)
+        components.push(
+`:checkered_flag: Number of finished books: **${books.length}x**
+:clock: Total listen time: **${timeStr}**
+:book: Average time per book: **${TextUtils.timeStrFromMinutes(Math.round(totalMinutes / books.length))}**`
+        )
+
         if (includeDescription) {
             const firstBook = books[0]
-            description = this.decodeHtmlEntities(firstBook.description ?? 'No description available.')
+            components.push(':information_source: '+this.decodeHtmlEntities(firstBook.description ?? 'No description available.'))
         }
-        if (books.length > 1) {
-            const totalMinutes = books.reduce(
-                (acc, book) => {
-                    return (book.runtimeHours ?? 0) * 60 + (book.runtimeMinutes ?? 0) + acc
-                },
-                0
-            )
-            const timeStr = TextUtils.timeStrFromMinutes(totalMinutes)
-            description += `\n
-🏁 Books finished so far: **${books.length}x**
-🕰 Total time: **${timeStr}**
-📖 Average time per book: **${TextUtils.timeStrFromMinutes(Math.round(totalMinutes / books.length))}**`
-        }
-        return description
+        return components.join('\n\n')
     }
 }
 
