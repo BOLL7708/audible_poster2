@@ -1,5 +1,6 @@
 import DataUtils, {EBookIdType} from './DataUtils.mjs'
 import {IBookValues} from './ScrapeUtils.mjs'
+import TextUtils from './TextUtils.mjs'
 
 export default class PostUtils {
     static async buildPayload(values: IBookValues): Promise<IPostData | undefined> {
@@ -34,7 +35,7 @@ export default class PostUtils {
         let threadName = ''
         let embeds: IPostEmbed[] = []
         if (bookIsPartOfSeries) {
-            // Series
+            // region Series
             if (seriesAlreadyContainsBooks) {
                 // Update current post
                 postId = booksInSeries[0].postId ?? ''
@@ -42,46 +43,53 @@ export default class PostUtils {
                 if (seriesAlreadyContainsBooks && !bookAlreadyExists) {
                     // Append new book to include it in post
                     booksInSeries.push(values)
+                } else {
+                    // Update book in series
+                    const index = booksInSeries.findIndex((book) => book.bookId === values.bookId)
+                    if (index > -1) {
+                        booksInSeries[index] = values
+                    }
                 }
 
                 booksInSeries.sort((a, b) => {
                     return (a.bookNumber ?? 0) - (b.bookNumber ?? 0)
                 })
 
-                const firstBook = booksInSeries[0]
                 if (booksInSeries.length > 10) {
                     // Books as fields, as a message can only have 10 embeds.
-                    content = firstBook.description ?? 'No description.' // Because book descriptions are hidden now
+                    content = this.buildSeriesDescription(booksInSeries, true)
                     embeds = [this.renderEmbedWithBooks(booksInSeries)]
                 } else {
                     // Books as embeds, as a message can fit up to 10.
-                    content = 'This is a series of books.' // TODO: Progress values
+                    content = this.buildSeriesDescription(booksInSeries, false)
                     embeds = booksInSeries.map((bookValues) => {
-                        return this.renderBookAsEmbed(bookValues)
+                        return this.renderBookAsEmbed(bookValues, EPostDescriptionType.Description)
                     })
                     const totalSize = this.getSizeOfPost(content, embeds)
-                    if(totalSize > 6000) {
-                        content = firstBook.description ?? 'No description.' // Because book descriptions are hidden now
+                    if (totalSize > 6000) {
+                        content = this.buildSeriesDescription(booksInSeries, true)
                         embeds = [this.renderEmbedWithBooks(booksInSeries)]
                     }
                 }
             } else {
                 // Create new post
-                threadName = values.series ?? 'N/A' // TODO: Total hours read? Also update this when editing?
-                content = `This is a series of books.` // TODO: Progress values
-                embeds = [this.renderBookAsEmbed(values)]
+                threadName = values.series ?? 'Untitled'
+                content = this.buildSeriesDescription(booksInSeries, false)
+                embeds = [this.renderBookAsEmbed(values, EPostDescriptionType.Description)]
             }
+            // endregion
         } else {
-            // Standalone book
-            content = 'This is a standalone book.'
-            embeds = [this.renderBookAsEmbed(values)]
+            // region Standalone book
+            content = this.decodeHtmlEntities(values.description ?? 'No description')
+            embeds = [this.renderBookAsEmbed(values, EPostDescriptionType.Subtitle)]
             if (bookAlreadyExists) {
                 // Update current post
                 postId = storedBookValues.postId ?? ''
             } else {
                 // New post
-                threadName = values.title ?? 'N/A'
+                threadName = values.title ?? 'Untitled'
             }
+            // endregion
         }
 
         const postData: IPostData = {
@@ -98,14 +106,22 @@ export default class PostUtils {
     }
 
     // region Full Size
-    private static renderBookAsEmbed(values: IBookValues): IPostEmbed {
-        return {
+    private static renderBookAsEmbed(values: IBookValues, descriptionType: EPostDescriptionType): IPostEmbed {
+        const postEmbed: IPostEmbed = {
             title: this.buildTitle(values),
-            description: this.decodeHtmlEntities(values.description ?? 'N/A'),
             url: values.link,
             thumbnail: {url: values.imageUrl ?? ''},
             fields: [this.renderBookAsField(values, '\u200b', true)]
         }
+        switch(descriptionType) {
+            case EPostDescriptionType.Description:
+                postEmbed.description = this.decodeHtmlEntities(values.description ?? 'No description.')
+                break;
+            case EPostDescriptionType.Subtitle:
+                postEmbed.description = this.decodeHtmlEntities(values.subtitle ?? '')
+                break;
+        }
+        return postEmbed
     }
 
     // endregion
@@ -114,7 +130,7 @@ export default class PostUtils {
         const values = list[0] // Use first book for description as that is used for series on the site.
         return {
             title: this.decodeHtmlEntities(values.series ?? 'N/A'),
-            description: this.decodeHtmlEntities(values.description ?? 'N/A'),
+            // description: this.decodeHtmlEntities(values.description ?? 'N/A'),
             thumbnail: {url: values.imageUrl ?? ''},
             fields: this.renderBooksAsFields(list)
         }
@@ -134,15 +150,15 @@ export default class PostUtils {
         return this.renderField(
             titleOverride.length ? titleOverride : this.buildTitle(values),
             `
-                    Author(s)${separator}${values.author ?? 'N/A'}
-                    Narrator(s)${separator}${values.narrator ?? 'N/A'}
-                    Length${separator}${values.runtime ?? 'N/A'}  
-                    Release Date${separator}${values.releaseDate ?? 'N/A'}
-                    Categories${separator}${values.categories ?? 'N/A'}
-                    Publisher${separator}${values.publisher ?? 'N/A'}
-                    Abridged${separator}${values.abridged ? 'Yes' : 'No'}
-                    Adult Content${separator}${values.adult ? 'Yes' : 'No'}
-                    ${link}
+✍ Author(s)${separator}**${values.author ?? 'N/A'}**
+🗣 Narrator(s)${separator}**${values.narrator ?? 'N/A'}**
+⌛ Length${separator}**${values.runtimeHours ?? 0}h ${values.runtimeMinutes ?? 0}m**  
+📅 Release Date${separator}**${values.releaseDate ?? 'N/A'}**
+📚 Categories${separator}**${values.categories ?? 'N/A'}**
+👨‍💼 Publisher${separator}**${values.publisher ?? 'N/A'}**
+🌉 Abridged${separator}**${values.abridged ? 'Yes' : 'No'}**
+💃 Adult Content${separator}**${values.adult ? 'Yes' : 'No'}**
+${link}
                 `
         )
     }
@@ -162,7 +178,8 @@ export default class PostUtils {
     private static buildTitle(values: IBookValues): string {
         const title = this.decodeHtmlEntities(values.title ?? '')
         if (values.bookNumber) {
-            return `${title} (Book ${values.bookNumber})`
+            const bookNr = TextUtils.renderEmojiNumber(values.bookNumber)
+            return `${bookNr} ${title} `
         }
         return `${title}`
     }
@@ -193,13 +210,41 @@ export default class PostUtils {
 
     private static getSizeOfPost(content: string, embeds: IPostEmbed[]): number {
         return content.length +
-            embeds.reduce((acc, embed): number=>{
+            embeds.reduce((acc, embed): number => {
                 const fieldLength = embed.fields.reduce((acc, field): number => {
                     return acc + field.name.length + field.value.length
                 }, 0)
-                return acc + embed.title.length + embed.description.length + fieldLength
+                return acc + embed.title.length + (embed.description?.length ?? 0) + fieldLength
             }, 0)
     }
+
+    private static buildSeriesDescription(books: IBookValues[], includeDescription: boolean): string {
+        let description = ''
+        if (includeDescription) {
+            const firstBook = books[0]
+            description = this.decodeHtmlEntities(firstBook.description ?? 'No description available.')
+        }
+        if (books.length > 1) {
+            const totalMinutes = books.reduce(
+                (acc, book) => {
+                    return (book.runtimeHours ?? 0) * 60 + (book.runtimeMinutes ?? 0) + acc
+                },
+                0
+            )
+            const timeStr = TextUtils.timeStrFromMinutes(totalMinutes)
+            description += `\n
+🏁 Books finished so far: **${books.length}x**
+🕰 Total time: **${timeStr}**
+📖 Average time per book: **${TextUtils.timeStrFromMinutes(Math.round(totalMinutes / books.length))}**`
+        }
+        return description
+    }
+}
+
+enum EPostDescriptionType {
+    None,
+    Description,
+    Subtitle
 }
 
 export interface IPostData {
@@ -217,7 +262,7 @@ export interface IPostContent {
 
 export interface IPostEmbed {
     title: string
-    description: string
+    description?: string
     url?: string
     thumbnail: {
         url: string

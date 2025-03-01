@@ -35,8 +35,7 @@ const fetchPage = async () => {
     if (values) {
       bookValues.value = values
       updateStatus('Page successfully loaded!')
-    }
-    else updateStatus('Unable to load page!', 2)
+    } else updateStatus('Unable to load page!', 2)
   }
   isLoadingPage.value = false
 }
@@ -48,10 +47,10 @@ const post = async () => {
     console.log(payload)
     const response = await PostUtils.post(payload)
     if (response) {
-      postResponse.value = response
-      bookValues.value.postId = postResponse.value.id
+      // postResponse.value = response
+      bookValues.value.postId = response.id
       const savedPost = await DataUtils.saveOrUpdateBook(toRaw(bookValues.value))
-      if(savedPost) updateStatus('Posted and saved successfully!')
+      if (savedPost) updateStatus('Posted and saved successfully!')
       else updateStatus('Posted successfully but failed saving!!', 1)
     } else {
       updateStatus('Failed to post to Discord.', 2)
@@ -64,9 +63,17 @@ const post = async () => {
 
 const updateStatus = (message: string, level: number = 0) => {
   if (htmlStatus.value) {
-    htmlStatus.value.innerHTML = `Status: ${message}`
+    const date = new Date()
+    const now = date.toISOString()
+    const time = [
+      date.getHours().toString().padStart(2, '0'),
+      date.getMinutes().toString().padStart(2, '0'),
+      date.getSeconds().toString().padStart(2, '0')
+    ].join(':')
+    htmlStatus.value.innerHTML = `[${time}] Status: ${message}`
     htmlStatus.value.classList.remove('level0', 'level1', 'level2', 'level3')
     htmlStatus.value.classList.add(`level${level}`)
+    htmlStatus.value.title = now
     if (message.length) htmlStatus.value.classList.remove('hidden')
     else htmlStatus.value.classList.add('hidden')
   }

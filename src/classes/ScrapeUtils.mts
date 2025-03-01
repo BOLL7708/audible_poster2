@@ -68,9 +68,16 @@ export default class ScrapeUtils {
             // bookValues.releaseDate = dateObj.toISOString().split('T')[0]
         }
         if(metadata?.duration) {
-            const durationMatch = metadata.duration.match(/(\d+) hrs and (\d+) mins/i)
-            if(durationMatch) {
-                newBookValues.runtime = `${durationMatch[1]}h ${durationMatch[2]}m`
+            const hoursAndMinutesMatch = metadata.duration.match(/(\d+) hrs and (\d+) mins/i)
+            if(hoursAndMinutesMatch) {
+                newBookValues.runtimeHours = Number.parseInt(hoursAndMinutesMatch[1])
+                newBookValues.runtimeMinutes = Number.parseInt(hoursAndMinutesMatch[2])
+            } else { // Some books are exact hours, then the minutes are missing.
+                const hoursMatch = metadata.duration.match(/(\d+) hrs/i)
+                if(hoursMatch) {
+                    newBookValues.runtimeHours = Number.parseInt(hoursMatch[1])
+                    newBookValues.runtimeMinutes = 0
+                }
             }
         }
         if(metadata?.series?.length) {
@@ -97,11 +104,13 @@ export default class ScrapeUtils {
         if(match) {
             const title = match[1] ?? ''
             const subtitleWithBookNumber = match[2] ?? ''
-            const [subtitle, bookNumberStr] = subtitleWithBookNumber.split(', ')
-            const bookNumber = parseInt(bookNumberStr.replace(/\D*/gs, ''))
+            const subtitleArr = subtitleWithBookNumber.split(', ')
+            // TODO: This fails for some books where the subtitle is not present. Cannot find any other place for it.
+            const bookNumber = parseInt(subtitleArr.pop()?.replace(/\D*/gs, '') ?? '')
             if(title) newBookValues.title = title
+            if(subtitleWithBookNumber) newBookValues.subtitle = subtitleWithBookNumber
             if(bookNumber) newBookValues.bookNumber = bookNumber
-            console.log('TitleData', {title, subtitle, bookNumber})
+            console.log('TitleData', {title, subtitleWithBookNumber, bookNumber})
         }
         console.table(newBookValues)
         return Object.assign({}, bookValues, newBookValues)
@@ -150,9 +159,16 @@ export default class ScrapeUtils {
         if(audioBooks.length) {
             const book = audioBooks[0]
             newBookValues.abridged = book.abridged == 'true'
-            const durationPtMatch = book.duration.match(/PT(\d+)H(\d+)M/i)
-            if(durationPtMatch) {
-                newBookValues.runtime = `${durationPtMatch[1]}h ${durationPtMatch[2]}m`
+            const hoursAndMinutesPtMatch = book.duration.match(/PT(\d+)H(\d+)M/i)
+            if(hoursAndMinutesPtMatch) {
+                newBookValues.runtimeHours = Number.parseInt(hoursAndMinutesPtMatch[1])
+                newBookValues.runtimeMinutes = Number.parseInt(hoursAndMinutesPtMatch[2])
+            } else { // If the minutes are missing we match for just the hours
+                const hoursPtMatch = book.duration.match(/PT(\d+)h/i)
+                if(hoursPtMatch) {
+                    newBookValues.runtimeHours = Number.parseInt(hoursPtMatch[1])
+                    newBookValues.runtimeMinutes = 0
+                }
             }
             if(book.author.length) newBookValues.author = book.author.map((author)=>{return author.name}).join(', ')
             if(book.readBy.length) newBookValues.narrator = book.readBy.map((narrator)=>{return narrator.name}).join(', ')
@@ -214,6 +230,7 @@ export interface IBookValues {
     postId?: string
     link?: string
     title?: string
+    subtitle?: string
     language?: string
     description?: string
     bannerUrl?: string
@@ -225,7 +242,8 @@ export interface IBookValues {
     seriesWebPath?: string
     bookNumber?: number
     bookId?: string
-    runtime?: string
+    runtimeHours?: number
+    runtimeMinutes?: number
     publisher?: string
     releaseDate?: string
     adult?: boolean
