@@ -153,7 +153,7 @@ export default class PostUtils {
             `
 :writing_hand: Author(s)${separator}**${values.author ?? 'N/A'}**
 :speaking_head: Narrator(s)${separator}**${values.narrator ?? 'N/A'}**
-:hourglass: Length${separator}**${values.runtimeHours ?? 0}h ${values.runtimeMinutes ?? 0}m**  
+:hourglass: Length${separator}**${values.runtimeHours ?? 0}h ${values.runtimeMinutes ?? 0}m**
 :date: Release Date${separator}**${values.releaseDate ?? 'N/A'}**
 :books: Categories${separator}**${values.categories ?? 'N/A'}**
 :man_office_worker: Publisher${separator}**${values.publisher ?? 'N/A'}**
@@ -169,11 +169,6 @@ ${link}
     // region Generic
     private static renderField(name: string, value: string, inline: boolean = false): IPostEmbedField {
         return {name, value, inline}
-    }
-
-    private static renderRowBreakField(): IPostEmbedField {
-        const char = '\u200b'
-        return this.renderField(char, char)
     }
 
     private static buildTitle(values: IBookValues): string {
