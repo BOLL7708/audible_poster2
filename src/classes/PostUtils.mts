@@ -1,5 +1,6 @@
 import DataUtils, {EBookIdType} from './DataUtils.mjs'
 import {IBookValues} from './ScrapeUtils.mjs'
+import {IBookDbValues} from './DataUtils.mjs'
 import TextUtils from './TextUtils.mjs'
 
 export enum EChannel {
@@ -199,9 +200,6 @@ Date: ${values.listenEnd}
             },
         } : undefined
     }
-    private static buildPostUrl(response: IPostResponse): string {
-
-    }
     // endregion
 
     // region Generic
@@ -289,10 +287,12 @@ export interface IPostData {
 }
 
 export interface IPostContent {
+    username?: string
+    avatar_url?: string
     content: string
     /** Add to create a new thread, required for forum channels. */
     thread_name?: string
-    embeds: IPostEmbed[]
+    embeds?: IPostEmbed[]
 }
 
 export interface IPostEmbed {
