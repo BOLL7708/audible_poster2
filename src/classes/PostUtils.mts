@@ -2,8 +2,14 @@ import DataUtils, {EBookIdType} from './DataUtils.mjs'
 import {IBookValues} from './ScrapeUtils.mjs'
 import TextUtils from './TextUtils.mjs'
 
+export enum EChannel {
+    Forum = 'forum',
+    Alert = 'alert'
+}
+
 export default class PostUtils {
-    static async buildPayload(values: IBookValues): Promise<IPostData | undefined> {
+    // region Forum Post
+    static async buildForumPayload(values: IBookValues): Promise<IPostData | undefined> {
         if (!values.title || !values.link || !values.bookId) {
             console.warn(`Missing value, title: ${values.title}, link: ${values.link}, bookId: ${values.bookId}`)
             return undefined
@@ -81,7 +87,7 @@ export default class PostUtils {
             // endregion
         } else {
             // region Standalone book
-            content = ':information_source: '+this.decodeHtmlEntities(values.description ?? 'No description')
+            content = ':information_source: ' + this.decodeHtmlEntities(values.description ?? 'No description')
             embeds = [this.renderBookAsEmbed(values, EPostDescriptionType.Subtitle)]
             if (bookAlreadyExists) {
                 // Update current post
@@ -99,7 +105,7 @@ export default class PostUtils {
                 embeds
             }
         }
-        console.log('buildPayload', {postId, threadName})
+        console.log('buildForumPayload', {postId, threadName})
         if (postId) postData.id = postId // Edit post
         if (threadName) postData.payload.thread_name = threadName
 
@@ -114,13 +120,13 @@ export default class PostUtils {
             thumbnail: {url: values.imageUrl ?? ''},
             fields: [this.renderBookAsField(values, '\u200b', true)]
         }
-        switch(descriptionType) {
+        switch (descriptionType) {
             case EPostDescriptionType.Description:
-                postEmbed.description = ':information_source: '+this.decodeHtmlEntities(values.description ?? 'No description.')
-                break;
+                postEmbed.description = ':information_source: ' + this.decodeHtmlEntities(values.description ?? 'No description.')
+                break
             case EPostDescriptionType.Subtitle:
                 postEmbed.description = this.decodeHtmlEntities(values.subtitle ?? '')
-                break;
+                break
         }
         return postEmbed
     }
@@ -165,6 +171,38 @@ ${link}
     }
 
     // endregion
+    // endregion
+
+    // region Alert Post
+    public static buildAlertPayload(isStart: boolean, values: IBookDbValues): IPostData|undefined {
+        // TODO: Build a localStorage config solution so we can set a server ID and include post links in these alerts.
+        let content: string|undefined
+        const series = values.series ? `${values.series}` : 'N/A'
+        if (isStart && !values.postStartId && values.listenStart) {
+            content = `
+# Started: ${values.title}
+Series: ${series}
+Date: ${values.listenStart}
+`
+        } else if(!isStart && !values.postEndId && values.listenEnd) {
+            content = `
+# Finished: ${values.title}
+Series: ${series}
+Date: ${values.listenEnd}
+`
+        }
+        return content ? {
+            payload: {
+                content,
+                username: values.title,
+                avatar_url: values.imageUrl
+            },
+        } : undefined
+    }
+    private static buildPostUrl(response: IPostResponse): string {
+
+    }
+    // endregion
 
     // region Generic
     private static renderField(name: string, value: string, inline: boolean = false): IPostEmbedField {
@@ -182,10 +220,10 @@ ${link}
 
     // endregion
 
-    static async post(data: IPostData): Promise<IPostResponse | undefined> {
+    static async post(data: IPostData, channel: EChannel): Promise<IPostResponse | undefined> {
         const root = import.meta.env.VITE_ROOT_PHP ?? ''
         const response = await fetch(
-            `${root}post_webhook.php`,
+            `${root}post_webhook.php?channel=${channel}`,
             {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -232,7 +270,7 @@ ${link}
 
         if (includeDescription) {
             const firstBook = books[0]
-            components.push(':information_source: '+this.decodeHtmlEntities(firstBook.description ?? 'No description available.'))
+            components.push(':information_source: ' + this.decodeHtmlEntities(firstBook.description ?? 'No description available.'))
         }
         return components.join('\n\n')
     }

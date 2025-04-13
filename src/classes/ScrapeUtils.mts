@@ -224,10 +224,6 @@ export default class ScrapeUtils {
 }
 
 export interface IBookValues {
-    /** Is returned when retrieved from the database */
-    id?: number,
-    /** Filled in by posting to Discord. */
-    postId?: string
     link?: string
     title?: string
     subtitle?: string

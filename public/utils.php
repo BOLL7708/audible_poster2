@@ -13,9 +13,9 @@ function setCorsHeadersAndHandleOptions(): void {
 /**
  * Loads a file from disk, returns null if it does not exist.
  * @param string $filename
- * @return string|null
+ * @return array|null
  */
-function loadFile(string $filename): string|null {
+function loadFile(string $filename): array|null {
     $data = null;
     try {
         $data = include($filename);
@@ -30,7 +30,7 @@ function loadFile(string $filename): string|null {
  * @param array $filenames
  * @return string|null
  */
-function loadFileOfFiles(array $filenames): string|null {
+function loadFileOfFiles(array $filenames): array|null {
     foreach($filenames as $filename) {
         $data = loadFile($filename);
         if(!empty($data)) return $data;

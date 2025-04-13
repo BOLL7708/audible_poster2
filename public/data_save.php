@@ -28,7 +28,7 @@ $result = $db->query($query, $dataArr);
 
 if(!is_array($result)) {
     http_response_code(400);
-    exit('Failed to write data to file.');
+    exit('Failed to write data to DB.');
 } else {
     exit();
 }

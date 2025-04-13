@@ -4,10 +4,20 @@
  * Will return a 400 if it fails, with a clear text message, or a 200 with a JSON body if it succeeded.
  */
 
+enum Channel: string {
+    case Forum = 'forum';
+    case Alert = 'alert';
+}
+
 include_once('utils.php');
 setCorsHeadersAndHandleOptions();
-
-$webhookUrl = loadFileOfFiles(['webhook.local.php', 'webhook.php']);
+$channel = $_GET['channel'] ?? 'forum';
+$webhookUrls = loadFileOfFiles(['webhook.local.php', 'webhook.php']);
+$webhookUrl = $webhookUrls[$channel] ?? null;
+if(empty($webhookUrl)) {
+    http_response_code(400);
+    exit('No webhook URL found for channel: '.$channel);
+}
 $data = json_decode(file_get_contents('php://input'));
 $id = $data->id ?? null;
 $payload = $data->payload ?? null;
@@ -30,7 +40,12 @@ try {
     if(empty($id)) {
         $response = file_get_contents("$webhookUrl?wait=true", false, $context);
     } else {
-        $response = file_get_contents("$webhookUrl/messages/$id?thread_id=$id&wait=true", false, $context);
+        $url = "";
+        if($channel === Channel::Forum->value) {
+            $response = file_get_contents("$webhookUrl/messages/$id?thread_id=$id&wait=true", false, $context);
+        } else {
+            $response = file_get_contents("$webhookUrl/messages/$id?wait=true", false, $context);
+        }
     }
 } catch(Exception $e) {
     http_response_code(400);
