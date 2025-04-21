@@ -8,6 +8,9 @@
 5. List start and end time in forum posts?
 
 ## Future Features
+### Account
+1. Add hammer protection to prevent brutal force attacks.
+   1. Store IPs and number of tries and last timestamp of attempt in the database or a file.
 ### Maintenance
 1. Ability to update all posts with a set time delay to avoid rate limiting.
 2. Add a list of all existing books in the DB to the interface.
