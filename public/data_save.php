@@ -1,7 +1,6 @@
 <?php
-include_once('utils.php');
-include_once('db.php');
-setCorsHeadersAndHandleOptions();
+include_once('auth.php');
+include_once('db.inc.php');
 $data = json_decode(file_get_contents('php://input'));
 if(empty($data)) {
     http_response_code(400);

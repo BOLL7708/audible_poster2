@@ -9,10 +9,9 @@ enum Channel: string {
     case Alert = 'alert';
 }
 
-include_once('utils.php');
-setCorsHeadersAndHandleOptions();
+include_once('auth.php');
 $channel = $_GET['channel'] ?? 'forum';
-$webhookUrls = loadFileOfFiles(['webhook.local.php', 'webhook.php']);
+$webhookUrls = loadFirstExistingFile(['_webhook.local.php', '_webhook.php']);
 $webhookUrl = $webhookUrls[$channel] ?? null;
 if(empty($webhookUrl)) {
     http_response_code(400);

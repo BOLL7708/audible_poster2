@@ -1,4 +1,7 @@
+import AuthUtils from './AuthUtils.mjs'
+import Constants from './Constants.mjs'
 import {IBookValues} from './ScrapeUtils.mjs'
+import DomUtils from './SharedUtils/DomUtils.mjs'
 
 export enum EBookIdType {
     Book,
@@ -45,7 +48,7 @@ export default class DataUtils {
             ? `?${field}=${id}`
             : ''
         const url = `${root}data_load.php${query}`
-        const response = await fetch(url)
+        const response = await fetch(url, AuthUtils.getInit())
         if (response.ok) {
             const result = await response.json() as IBookDbValues[]
             if (Array.isArray(result)) {
@@ -61,13 +64,13 @@ export default class DataUtils {
      */
     static async saveOrUpdateBook(values: IBookDbValues): Promise<boolean> {
         const root = import.meta.env.VITE_ROOT_PHP ?? ''
+        const init = AuthUtils.getInit()
+        init.method = 'POST'
+        init.headers.set('Content-Type', 'application/json')
+        init.body = JSON.stringify(values)
         const response = await fetch(
             `${root}data_save.php`,
-            {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(values)
-            }
+            init
         )
         return response.ok
     }

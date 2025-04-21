@@ -1,0 +1,13 @@
+import Constants from './Constants.mjs'
+import DomUtils from './SharedUtils/DomUtils.mjs'
+import ValueUtils from './SharedUtils/ValueUtils.mjs'
+
+export default class AuthUtils {
+    static getInit(): RequestInit {
+        return DomUtils.buildBearerAuth(localStorage.getItem(Constants.STORAGE_PASSWORD) ?? '')
+    }
+    static async setPassword(password: string): Promise<void> {
+        const hash = await ValueUtils.hashForPhp(password)
+        localStorage.setItem(Constants.STORAGE_PASSWORD, hash)
+    }
+}

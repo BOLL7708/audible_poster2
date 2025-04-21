@@ -1,6 +1,5 @@
 <?php
-include_once('utils.php');
-setCorsHeadersAndHandleOptions();
+include_once('auth.php');
 $url = urldecode($_GET["url"]);
 if(!filter_var($url, FILTER_VALIDATE_URL)) {
     http_response_code(400);

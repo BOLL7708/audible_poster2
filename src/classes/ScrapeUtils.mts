@@ -1,7 +1,12 @@
+import AuthUtils from './AuthUtils.mjs'
+
 export default class ScrapeUtils {
     static async fetchAndParse(url: string): Promise<IBookValues | undefined> {
         const root = import.meta.env.VITE_ROOT_PHP ?? ''
-        const response = await fetch(`${root}fetch_page.php?url=` + encodeURIComponent(url))
+        const response = await fetch(
+            `${root}fetch_page.php?url=` + encodeURIComponent(url),
+            AuthUtils.getInit()
+        )
         if (response.ok) {
             let text = await response.text()
             text = text.replace(/\n/g, '')

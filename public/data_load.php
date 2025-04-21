@@ -1,7 +1,6 @@
 <?php
-include_once('utils.php');
-include_once('db.php');
-setCorsHeadersAndHandleOptions();
+include_once('auth.php');
+include_once('db.inc.php');
 $bookId = $_GET['bookId'] ?? '';
 $seriesId = $_GET['seriesId'] ?? '';
 $postId = $_GET['postId'] ?? '';

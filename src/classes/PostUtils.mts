@@ -1,3 +1,4 @@
+import AuthUtils from './AuthUtils.mjs'
 import DataUtils, {EBookIdType} from './DataUtils.mjs'
 import {IBookValues} from './ScrapeUtils.mjs'
 import {IBookDbValues} from './DataUtils.mjs'
@@ -220,13 +221,13 @@ Date: ${values.listenEnd}
 
     static async post(data: IPostData, channel: EChannel): Promise<IPostResponse | undefined> {
         const root = import.meta.env.VITE_ROOT_PHP ?? ''
+        const init = AuthUtils.getInit()
+        init.method = 'POST'
+        init.headers.set('Content-Type', 'application/json')
+        init.body = JSON.stringify(data)
         const response = await fetch(
             `${root}post_webhook.php?channel=${channel}`,
-            {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(data)
-            }
+            init
         )
         if (response.ok) {
             return await response.json() as IPostResponse

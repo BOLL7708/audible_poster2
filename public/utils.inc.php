@@ -30,7 +30,7 @@ function loadFile(string $filename): array|null {
  * @param array $filenames
  * @return string|null
  */
-function loadFileOfFiles(array $filenames): array|null {
+function loadFirstExistingFile(array $filenames): array|null {
     foreach($filenames as $filename) {
         $data = loadFile($filename);
         if(!empty($data)) return $data;
