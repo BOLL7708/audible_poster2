@@ -33,6 +33,4 @@ if($storedPasswordHash !== $passwordHash) {
     error_log("$storedPasswordHash !== $passwordHash");
     http_response_code(401);
     exit('Provided password did not match stored password.');
-} else {
-    error_log('PASSWORD HASHES WERE A MATCH!');
 }

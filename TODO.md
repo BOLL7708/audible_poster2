@@ -1,15 +1,22 @@
 # TODO
 ## Current Features
 ### Reviews & Listen Times
-1. Include review score in forum posts if available.
-2. Include average review score for series if available.
-3. Include review score in end listen alert?
-4. Calculate read time for forum and end posts?
-5. List start and end time in forum posts?
+1. 🆗 Include review score in forum posts if available.
+2. !! Include average review score for series if available.
+3. ❌ Include review score in end listen alert?
+4. 🆗 !!! Calculate read time for 🆗 forum and ❌ end posts
+5. 🆗 !!! List start and end time in forum posts
+6. !!! Do not include books in total read time or finished counts if not finished (if they have a start value but not end value).
 
 ## Future Features
+### Setup
+1. Add a setup page that will show up if the account files are missing.
+   1. Ask for a password
+   2. Ask for the server ID
+   3. Ask for webhook URIs
+   4. Make it possible to change these values
 ### Account
-1. Add hammer protection to prevent brutal force attacks.
+1. ! Add hammer protection to prevent brutal force attacks.
    1. Store IPs and number of tries and last timestamp of attempt in the database or a file.
 ### Maintenance
 1. Ability to update all posts with a set time delay to avoid rate limiting.

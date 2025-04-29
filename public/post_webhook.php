@@ -29,7 +29,8 @@ $context = stream_context_create([
     'http' => [
         'method' => empty($id) ? 'POST' : 'PATCH',
         'header' => "Content-Type: application/json\r\n",
-        'content' => json_encode($payload)
+        'content' => json_encode($payload),
+        'ignore_errors' => true // To get error response
     ]
 ]);
 
@@ -55,5 +56,16 @@ if(empty($response)) {
     exit('Failed to get response.');
 }
 
+// Handle error responses
+$status = $http_response_header[0];
+$match = [];
+preg_match('/HTTP\/\S*\s(\d{3})/', $status, $match);
+$httpCode = intval(array_pop($match));
+if($httpCode >= 300) {
+    // Propagate response code
+    http_response_code($httpCode);
+}
+
+// Return
 header('Content-type: application/json');
 echo $response;

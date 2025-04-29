@@ -1,7 +1,5 @@
 import AuthUtils from './AuthUtils.mjs'
-import Constants from './Constants.mjs'
 import {IBookValues} from './ScrapeUtils.mjs'
-import DomUtils from './SharedUtils/DomUtils.mjs'
 
 export enum EBookIdType {
     Book,
@@ -66,7 +64,9 @@ export default class DataUtils {
         const root = import.meta.env.VITE_ROOT_PHP ?? ''
         const init = AuthUtils.getInit()
         init.method = 'POST'
-        init.headers.set('Content-Type', 'application/json')
+        const headers = new Headers()
+        headers.set('Content-Type', 'application/json')
+        init.headers = headers
         init.body = JSON.stringify(values)
         const response = await fetch(
             `${root}data_save.php`,

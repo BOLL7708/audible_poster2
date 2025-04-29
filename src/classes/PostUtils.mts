@@ -2,6 +2,7 @@ import AuthUtils from './AuthUtils.mjs'
 import DataUtils, {EBookIdType} from './DataUtils.mjs'
 import {IBookValues} from './ScrapeUtils.mjs'
 import {IBookDbValues} from './DataUtils.mjs'
+import ValueUtils from './SharedUtils/ValueUtils.mjs'
 import TextUtils from './TextUtils.mjs'
 
 export enum EChannel {
@@ -62,7 +63,7 @@ export default class PostUtils {
                 booksInSeries.sort((a, b) => {
                     return (a.bookNumber ?? 0) - (b.bookNumber ?? 0)
                 })
-
+                let sizeOfEmbeds = 0
                 if (booksInSeries.length > 10) {
                     // Books as fields, as a message can only have 10 embeds.
                     content = this.buildSeriesDescription(booksInSeries, true)
@@ -74,12 +75,19 @@ export default class PostUtils {
                         return this.renderBookAsEmbed(bookValues, EPostDescriptionType.Description)
                     })
                     // If the message is too large, we will again fall back to fields.
-                    const totalSize = this.getSizeOfPost(content, embeds)
-                    if (totalSize > 6000) {
+                    sizeOfEmbeds = this.getSizeOfEmbeds(embeds)
+                    if (sizeOfEmbeds > 6000) {
                         content = this.buildSeriesDescription(booksInSeries, true)
                         embeds = [this.renderEmbedWithBooks(booksInSeries)]
                     }
                 }
+                // If the message is still too large, we fall back to minified fields.
+                sizeOfEmbeds = this.getSizeOfEmbeds(embeds)
+                if (sizeOfEmbeds > 6000) {
+                    content = this.buildSeriesDescription(booksInSeries, true)
+                    embeds = [this.renderEmbedWithBooks(booksInSeries, true)]
+                }
+                // TODO: If still too large, think of just making a summary post with statistics with link to the series as a whole.
             } else {
                 // Create new post
                 threadName = values.series ?? 'Untitled'
@@ -135,30 +143,36 @@ export default class PostUtils {
 
     // endregion
     // region Minimized
-    private static renderEmbedWithBooks(list: IBookValues[]): IPostEmbed {
+    private static renderEmbedWithBooks(list: IBookDbValues[], minified: boolean = false): IPostEmbed {
         const values = list[0] // Use first book for description as that is used for series on the site.
         return {
             title: this.decodeHtmlEntities(values.series ?? 'N/A'),
             // description: this.decodeHtmlEntities(values.description ?? 'N/A'),
             thumbnail: {url: values.imageUrl ?? ''},
-            fields: this.renderBooksAsFields(list)
+            fields: this.renderBooksAsFields(list, minified)
         }
     }
 
-    private static renderBooksAsFields(list: IBookValues[]): IPostEmbedField[] {
+    private static renderBooksAsFields(list: IBookDbValues[], minified: boolean = false): IPostEmbedField[] {
         const fields: IPostEmbedField[] = []
         for (const values of list) {
-            fields.push(this.renderBookAsField(values))
+            fields.push(this.renderBookAsField(values, '', false, minified))
         }
         return fields
     }
 
-    private static renderBookAsField(values: IBookValues, titleOverride: string = '', skipLink: boolean = false): IPostEmbedField {
+    private static renderBookAsField(values: IBookDbValues, titleOverride: string = '', skipLink: boolean = false, minified: boolean = false): IPostEmbedField {
         const separator = ' → '
-        const link = skipLink ? '' : `Link${separator}[Audible](<${values.link}>)`
+        const score = values.reviewScore && values.reviewScore > 0 ? `:star: Score${separator}**${values.reviewScore}**\n` : ''
+        const dates = values.listenStart && values.listenEnd
+            ? `:calendar: Finished ${separator}**${values.listenEnd} after ${ValueUtils.daysBetween(new Date(values.listenStart), new Date(values.listenEnd))} day(s)**\n`
+            : values.listenStart
+                ? `:calendar: Unfinished, started ${separator}**${values.listenStart}**\n`
+                : ''
+        const link = skipLink ? '' : `:link: Link${separator}**[Audible](<${values.link}>)**\n`
         return this.renderField(
             titleOverride.length ? titleOverride : this.buildTitle(values),
-            `
+            minified ? `${score}${dates}${link}` : `
 :writing_hand: Author(s)${separator}**${values.author ?? 'N/A'}**
 :speaking_head: Narrator(s)${separator}**${values.narrator ?? 'N/A'}**
 :hourglass: Length${separator}**${values.runtimeHours ?? 0}h ${values.runtimeMinutes ?? 0}m**
@@ -167,7 +181,7 @@ export default class PostUtils {
 :man_office_worker: Publisher${separator}**${values.publisher ?? 'N/A'}**
 :bridge_at_night: Abridged${separator}**${values.abridged ? 'Yes' : 'No'}**
 :dancer: Adult Content${separator}**${values.adult ? 'Yes' : 'No'}**
-${link}
+${score}${dates}${link}
                 `
         )
     }
@@ -223,7 +237,9 @@ Date: ${values.listenEnd}
         const root = import.meta.env.VITE_ROOT_PHP ?? ''
         const init = AuthUtils.getInit()
         init.method = 'POST'
-        init.headers.set('Content-Type', 'application/json')
+        const headers = new Headers(init.headers)
+        headers.set('Content-Type', 'application/json')
+        init.headers = headers
         init.body = JSON.stringify(data)
         const response = await fetch(
             `${root}post_webhook.php?channel=${channel}`,
@@ -241,9 +257,8 @@ Date: ${values.listenEnd}
         return txt.value
     }
 
-    private static getSizeOfPost(content: string, embeds: IPostEmbed[]): number {
-        return content.length +
-            embeds.reduce((acc, embed): number => {
+    private static getSizeOfEmbeds(embeds: IPostEmbed[]): number {
+        return embeds.reduce((acc, embed): number => {
                 const fieldLength = embed.fields.reduce((acc, field): number => {
                     return acc + field.name.length + field.value.length
                 }, 0)
