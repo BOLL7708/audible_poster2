@@ -1,4 +1,6 @@
 # TODO
+## Bugs
+1. For some reason it seems like the _built_ version (only) fails to hash the password correctly on _Firefox_ but it works just fine in dev mode or in Chrome. I have no idea what is going on, if I take the built code and run it separately the hash looks OK... ?!?!?!
 ## Current Features
 ### Reviews & Listen Times
 1. 🆗 Include review score in forum posts if available.

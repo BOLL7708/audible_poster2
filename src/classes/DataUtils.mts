@@ -62,11 +62,8 @@ export default class DataUtils {
      */
     static async saveOrUpdateBook(values: IBookDbValues): Promise<boolean> {
         const root = import.meta.env.VITE_ROOT_PHP ?? ''
-        const init = AuthUtils.getInit()
+        const init = AuthUtils.getInit({'Content-Type': 'application/json'})
         init.method = 'POST'
-        const headers = new Headers()
-        headers.set('Content-Type', 'application/json')
-        init.headers = headers
         init.body = JSON.stringify(values)
         const response = await fetch(
             `${root}data_save.php`,

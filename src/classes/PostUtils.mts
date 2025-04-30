@@ -235,11 +235,8 @@ Date: ${values.listenEnd}
 
     static async post(data: IPostData, channel: EChannel): Promise<IPostResponse | undefined> {
         const root = import.meta.env.VITE_ROOT_PHP ?? ''
-        const init = AuthUtils.getInit()
+        const init = AuthUtils.getInit({'Content-Type': 'application/json'})
         init.method = 'POST'
-        const headers = new Headers(init.headers)
-        headers.set('Content-Type', 'application/json')
-        init.headers = headers
         init.body = JSON.stringify(data)
         const response = await fetch(
             `${root}post_webhook.php?channel=${channel}`,
